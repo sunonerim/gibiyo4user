@@ -44,6 +44,13 @@ public class MainActivity extends AppCompatActivity {
         OneSignal.startInit(this).init();
     }
 
+    @Override
+    public void onBackPressed() {
+        if ( webview == null ) return ;
+
+        webview.goBack();
+    }
+
 
     class WebClient extends WebViewClient {
         public boolean shouldOverrideUrlLoading(WebView view, String url) {

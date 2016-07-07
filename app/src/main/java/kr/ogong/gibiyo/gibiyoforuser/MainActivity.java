@@ -1,5 +1,7 @@
 package kr.ogong.gibiyo.gibiyoforuser;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -54,7 +56,18 @@ public class MainActivity extends AppCompatActivity {
 
     class WebClient extends WebViewClient {
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            view.loadUrl(url);
+            if (url.startsWith("tel:")) {
+                //tel:01000000000
+                Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
+                startActivity(intent);
+                return true;
+            }else if (url.startsWith("mailto:")) {
+                //mailto:ironnip@test.com
+                Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse(url));
+                startActivity(i);
+                return true;
+            } else
+                view.loadUrl(url);
             return true;
         }
     }

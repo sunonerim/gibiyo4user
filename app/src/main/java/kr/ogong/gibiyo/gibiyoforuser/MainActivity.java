@@ -36,8 +36,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         webview = (WebView) findViewById(R.id.webView);
-        webview.setWebChromeClient(new WebClient()); // 응룡프로그램에서 직접 url 처리
-//        webview.setWebViewClient(new WebClient()); // 응룡프로그램에서 직접 url 처리
+        webview.setWebChromeClient(new WebChrome()); // 응룡프로그램에서 직접 url 처리
+        webview.setWebViewClient(new WebClient()); // 응룡프로그램에서 직접 url 처리
 
 
         String userAgent = webview.getSettings().getUserAgentString();
@@ -129,7 +129,8 @@ public class MainActivity extends AppCompatActivity {
             Log.d("Main>>manual", "longtitude=" + Lng + ", latitude=" + Lat);
         }
     }
-    class WebClient extends WebChromeClient {
+
+    class WebClient extends WebViewClient {
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
             if (url.startsWith("tel:")) {
                 //tel:01000000000
@@ -146,6 +147,23 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
     }
+
+
+    class WebChrome extends WebChromeClient {
+        @Override
+        public void onProgressChanged(WebView view, int newProgress) {
+            /*
+            //현제 페이지 진행사항을 ProgressBar를 통해 알린다.
+            if(newProgress < 100) {
+                mProgressBar.setProgress(newProgress);
+            } else {
+                mProgressBar.setVisibility(View.INVISIBLE);
+                mProgressBar.setLayoutParams(new LinearLayout.LayoutParams(0, 0));
+            }
+            */
+        }
+    }
+
 
     private final Handler handler = new Handler();
 

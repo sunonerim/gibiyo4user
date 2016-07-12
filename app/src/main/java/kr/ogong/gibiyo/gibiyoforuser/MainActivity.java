@@ -29,6 +29,8 @@ public class MainActivity extends AppCompatActivity {
     private double  Lat = 0.0;
     private double  Lng = 0.0;
 
+    private String  OsId = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,6 +64,20 @@ public class MainActivity extends AppCompatActivity {
         OneSignal.startInit(this).init();
 
         findLocation();
+
+        /*
+         아래는 OneSignal의 아이디를 가져오는 부분으로 OsId에 그 값을 세팅한다
+         단말기별로 고유의 아이디를 기지며 이는 어플을 삭제해도 유지함
+        */
+        OneSignal.idsAvailable(new OneSignal.IdsAvailableHandler() {
+            @Override
+            public void idsAvailable(String userId, String registrationId) {
+                OsId = userId;
+                Log.d("debug", ">>>> User:" + userId);
+                if (registrationId != null)
+                    Log.d("debug", "registrationId:" + registrationId);
+            }
+        });
     }
 
     @Override
@@ -71,7 +87,9 @@ public class MainActivity extends AppCompatActivity {
         webview.goBack();
     }
 
-
+    /**
+     * GPS로 위치 정보 가져오기
+     */
     public void findLocation() {
         // Acquire a reference to the system Location Manager
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -175,6 +193,17 @@ public class MainActivity extends AppCompatActivity {
                 public void run() {
                     // 원하는 동작
                     webview.loadUrl( "javascript:setGeoFromApp(" +  Lat + "," + Lng + ")");
+                }
+            });
+        }
+
+        @JavascriptInterface
+        public void requestOsId(final String arg) { // must be final
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    // 원하는 동작
+                    webview.loadUrl( "javascript:setOsIdFromApp('" + OsId + "')");
                 }
             });
         }

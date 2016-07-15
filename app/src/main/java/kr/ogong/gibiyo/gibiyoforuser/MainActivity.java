@@ -98,10 +98,8 @@ public class MainActivity extends AppCompatActivity {
     /**
      * GPS로 위치 정보 가져오기
      */
-    public void findLocation() {
+    public boolean findLocation() {
         // 이 경우는 이미 호출되어 돌아가는 경우 이므로 바로 리턴한다
-        if (locationManager != null) return;
-
         Lat = 0.0;
         Lng = 0.0;
 
@@ -113,8 +111,7 @@ public class MainActivity extends AppCompatActivity {
         // 네트워크 프로바이더 사용가능여부
         boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
 
-        Log.d("Main", "isGPSEnabled=" + isGPSEnabled);
-        Log.d("Main", "isNetworkEnabled=" + isNetworkEnabled);
+        if( ! (isGPSEnabled || isNetworkEnabled) ) return false;
 
         locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
@@ -161,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
 //            Lng = lastKnownLocation.getLongitude();
 //            Lat = lastKnownLocation.getLatitude();
 //        }
+        return ture;
     }
 
     public void clearFindLocation() {
@@ -178,7 +176,6 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
             locationManager.removeUpdates(locationListener);
-            locationManager = null;
         }
     }
 
@@ -244,9 +241,9 @@ public class MainActivity extends AppCompatActivity {
 
     private class AndroidBridge {
         @JavascriptInterface
-        public void requestGeo(final String arg) { // must be final
+        public boolean requestGeo(final String arg) { // must be final
             Log.d("sendgeo", "SEND GEO -------------------------- step 0");
-            findLocation();
+            if( ! findLocation() ) return false;
 
             Log.d("sendgeo", "SEND GEO -------------------------- step 1");
 
@@ -262,15 +259,16 @@ public class MainActivity extends AppCompatActivity {
                         //                                          int[] grantResults)
                         // to handle the case where the user grants the permission. See the documentation
                         // for ActivityCompat#requestPermissions for more details.
-                        Log.d("no permissiion", "NOOO-----------------------------------------------------------------");
+
                         return;
                     }
 
 
                     while ( Lat == 0.0 &&  Lng == 0.0  ) {
-                        Log.d("sendgeo", "SEND GEO -------------------------- step 2");
+
                         try {
                             Thread.sleep(500);
+                            Log.d("sendgeo", "SEND WAKE ---------------");
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -278,9 +276,11 @@ public class MainActivity extends AppCompatActivity {
                     }
                     clearFindLocation();
                     webview.loadUrl("javascript:setGeoFromApp(" + Lat + "," + Lng + ")");
-                    Log.d("sendgeo", "SEND GEO -------------------------- step 3");
+
                 }
             });
+            Log.d("sendgeo", "SEND GEO -------------------------- step 2");
+            return true;
         }
 
         @JavascriptInterface

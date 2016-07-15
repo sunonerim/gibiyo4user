@@ -27,10 +27,11 @@ import com.onesignal.OneSignal;
 public class MainActivity extends AppCompatActivity {
     private WebView webview;
 
-    private double  Lat = 0.0;
-    private double  Lng = 0.0;
+    private double Lat = 0.0;
+    private double Lng = 0.0;
 
-    private String  OsId = null;
+    private String OsId = null;
+    private AppCompatActivity that ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +65,7 @@ public class MainActivity extends AppCompatActivity {
         // OneSignal start.... hehe
         OneSignal.startInit(this).init();
 
-        findLocation();
+
 
         /*
          아래는 OneSignal의 아이디를 가져오는 부분으로 OsId에 그 값을 세팅한다
@@ -79,6 +80,9 @@ public class MainActivity extends AppCompatActivity {
                     Log.d("debug", "registrationId:" + registrationId);
             }
         });
+
+
+        that = this;
     }
 
     @Override
@@ -88,12 +92,21 @@ public class MainActivity extends AppCompatActivity {
         webview.goBack();
     }
 
+    LocationManager locationManager = null;
+    LocationListener locationListener = null;
+
     /**
      * GPS로 위치 정보 가져오기
      */
     public void findLocation() {
+        // 이 경우는 이미 호출되어 돌아가는 경우 이므로 바로 리턴한다
+        if (locationManager != null) return;
+
+        Lat = 0.0;
+        Lng = 0.0;
+
         // Acquire a reference to the system Location Manager
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         // GPS 프로바이더 사용가능여부
         boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -103,12 +116,12 @@ public class MainActivity extends AppCompatActivity {
         Log.d("Main", "isGPSEnabled=" + isGPSEnabled);
         Log.d("Main", "isNetworkEnabled=" + isNetworkEnabled);
 
-        LocationListener locationListener = new LocationListener() {
+        locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 Lat = location.getLatitude();
                 Lng = location.getLongitude();
 
-                Log.d("location", "latitude: " + Lat + ", longitude: " + Lng);
+                Log.d(">>location>>", "latitude: " + Lat + ", longitude: " + Lng);
             }
 
             public void onStatusChanged(String provider, int status, Bundle extras) {
@@ -136,16 +149,36 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        if ( isGPSEnabled ) locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-        if ( isNetworkEnabled ) locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
+        if (isGPSEnabled)
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
+        if (isNetworkEnabled)
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
 
         // 수동으로 위치 구하기
-        String locationProvider = LocationManager.GPS_PROVIDER;
-        Location lastKnownLocation = locationManager.getLastKnownLocation(locationProvider);
-        if (lastKnownLocation != null) {
-            Lng = lastKnownLocation.getLongitude();
-            Lat = lastKnownLocation.getLatitude();
-            Log.d("Main>>manual", "longtitude=" + Lng + ", latitude=" + Lat);
+//        String locationProvider = LocationManager.GPS_PROVIDER;
+//        Location lastKnownLocation = locationManager.getLastKnownLocation(locationProvider);
+//        if (lastKnownLocation != null) {
+//            Lng = lastKnownLocation.getLongitude();
+//            Lat = lastKnownLocation.getLatitude();
+//        }
+    }
+
+    public void clearFindLocation() {
+        Log.d("clearFindLocation", "clearFindLocation");
+
+        if (locationManager != null) {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                // TODO: Consider calling
+                //    ActivityCompat#requestPermissions
+                // here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+                return;
+            }
+            locationManager.removeUpdates(locationListener);
+            locationManager = null;
         }
     }
 
@@ -174,12 +207,12 @@ public class MainActivity extends AppCompatActivity {
                     }
                     return true;
                 }
-            }else  if (url.startsWith("tel:")) {
+            } else if (url.startsWith("tel:")) {
                 //tel:01000000000
                 Intent intent = new Intent(Intent.ACTION_DIAL, Uri.parse(url));
                 startActivity(intent);
                 return true;
-            }else if (url.startsWith("mailto:")) {
+            } else if (url.startsWith("mailto:")) {
                 //mailto:ironnip@test.com
                 Intent i = new Intent(Intent.ACTION_SENDTO, Uri.parse(url));
                 startActivity(i);
@@ -212,11 +245,40 @@ public class MainActivity extends AppCompatActivity {
     private class AndroidBridge {
         @JavascriptInterface
         public void requestGeo(final String arg) { // must be final
+            Log.d("sendgeo", "SEND GEO -------------------------- step 0");
+            findLocation();
+
+            Log.d("sendgeo", "SEND GEO -------------------------- step 1");
+
             handler.post(new Runnable() {
                 @Override
                 public void run() {
                     // 원하는 동작
-                    webview.loadUrl( "javascript:setGeoFromApp(" +  Lat + "," + Lng + ")");
+                    if (ActivityCompat.checkSelfPermission( that, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(that, android.Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                        // TODO: Consider calling
+                        //    ActivityCompat#requestPermissions
+                        // here to request the missing permissions, and then overriding
+                        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                        //                                          int[] grantResults)
+                        // to handle the case where the user grants the permission. See the documentation
+                        // for ActivityCompat#requestPermissions for more details.
+                        Log.d("no permissiion", "NOOO-----------------------------------------------------------------");
+                        return;
+                    }
+
+
+                    while ( Lat == 0.0 &&  Lng == 0.0  ) {
+                        Log.d("sendgeo", "SEND GEO -------------------------- step 2");
+                        try {
+                            Thread.sleep(500);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+
+                    }
+                    clearFindLocation();
+                    webview.loadUrl("javascript:setGeoFromApp(" + Lat + "," + Lng + ")");
+                    Log.d("sendgeo", "SEND GEO -------------------------- step 3");
                 }
             });
         }
